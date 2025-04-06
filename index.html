@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mine Sweeper Game</title>
+    <link prefetch rel="stylesheet" href="assets/font/iconfont.css">
+    <link async rel="stylesheet" href="assets/css/index.css">
+    <link async rel="shortcut icon" href="assets/favicon.png" type="image/x-icon">
+</head>
+<body>
+    <div class="container">
+        <h1>扫雷游戏</h1>
+        <section class="level">
+            <span>难度：</span>
+            <button data-level="1" class="active">初级</button>
+            <button data-level="2">中级</button>
+            <button data-level="3">高级</button>
+            <button class="restart hidden">重新开始</button>
+        </section>
+        <section class="stats">
+            <div class="score">地雷数：<span id="mineCount"></span></div>
+            <div class="time">已排除：<span id="mineFound"></span></div>
+        <section class="game">
+            <table class="gameBoard"></table>
+        </section>
+    </div>
+    <script src="assets/js/index.js" type="module"></script>
+</body>
+</html>

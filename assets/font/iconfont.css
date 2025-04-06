@@ -1,0 +1,31 @@
+@font-face {
+  font-family: "mine"; /* Project id 4882108 */
+  src: url('iconfont.woff2?t=1743867295190') format('woff2'),
+       url('iconfont.woff?t=1743867295190') format('woff'),
+       url('iconfont.ttf?t=1743867295190') format('truetype');
+}
+
+.mine {
+  font-family: "mine" !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.ms-doubted:before {
+  content: "\e669";
+}
+
+.ms-mine:before {
+  content: "\e600";
+}
+
+.ms-flag:before {
+  content: "\e601";
+}
+
+.ms-favicon:before {
+  content: "\e688";
+}
+

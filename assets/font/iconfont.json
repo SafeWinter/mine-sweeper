@@ -1,0 +1,37 @@
+{
+  "id": "4882108",
+  "name": "minesweeper",
+  "font_family": "mine",
+  "css_prefix_text": "ms-",
+  "description": "用于 H5 扫雷小游戏开发的图片素材",
+  "glyphs": [
+    {
+      "icon_id": "5831369",
+      "name": "问号",
+      "font_class": "doubted",
+      "unicode": "e669",
+      "unicode_decimal": 58985
+    },
+    {
+      "icon_id": "11623079",
+      "name": "扫雷",
+      "font_class": "mine",
+      "unicode": "e600",
+      "unicode_decimal": 58880
+    },
+    {
+      "icon_id": "18810758",
+      "name": "小旗子",
+      "font_class": "flag",
+      "unicode": "e601",
+      "unicode_decimal": 58881
+    },
+    {
+      "icon_id": "26383341",
+      "name": "菜单图标-扫雷小能手",
+      "font_class": "favicon",
+      "unicode": "e688",
+      "unicode_decimal": 59016
+    }
+  ]
+}
