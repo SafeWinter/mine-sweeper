@@ -3,28 +3,28 @@ import { configs } from './config.js';
 
 // number of mines found
 let mineFound = 0; 
+let currentLv = configs.lv1; // default level
 
-function bindLevelButtonActions(cfgs) {
-    const btns = $$('.level [data-level]');
+function bindLevelButtonActions() {
+    const btns = Array.from($$('.level [data-level]'));
     btns.forEach((btn, _, arr) => {
-        btn.onclick = ({
-            target
-        }) => {
+        btn.onclick = ({ target }) => {
             // toggle active class
             arr.forEach(bt => (target !== bt) ?
                 bt.classList.remove('active') :
                 bt.classList.add('active'));
             // reset mine found count
             mineFound = 0;
+            currentLv = getCurrentLevel(target.dataset.level);
             // reload game
-            start(cfgs);
+            start(currentLv);
         };
     });
 
     // when clicking on the restart button
     $('.restart').onclick = (ev) => {
         ev.preventDefault();
-        start(cfgs);
+        start(currentLv);
         mineFound = 0; // reset mine found count
         ev.target.classList.add('hidden');
     };
@@ -117,9 +117,9 @@ function populateNeighboringIds(mineCells, {col, row}) {
     //     });
 }
 
-function init(cfgs) {
+function init(currentLv) {
     // 1. Retrieve current level configuration
-    const cfg = getCurrentLevel(cfgs);
+    const cfg = currentLv;
 
     // 2. create table elements
     renderGameBoard(cfg);
@@ -134,9 +134,9 @@ function init(cfgs) {
     return mines;
 }
 
-function bindEvents(cfgs, mines) {
+function bindEvents(lv, mines) {
     // when selecting a level
-    bindLevelButtonActions(cfgs);
+    bindLevelButtonActions();
 
     // when clicking on the game board
     $('.gameBoard').onmousedown = (ev) => {
@@ -157,7 +157,7 @@ function bindEvents(cfgs, mines) {
                 e.preventDefault();
             };
 
-            const cellObj = findMineCellById(target.dataset.id, cfgs, mines);
+            const cellObj = findMineCellById(target.dataset.id, mines);
 
             if(cellObj.checked) {
                 // already checked or flagged
@@ -169,7 +169,7 @@ function bindEvents(cfgs, mines) {
                 // 右击
                 
                 // 添加/删除地雷标记
-                handleRightClick(target, cfgs, mines);
+                handleRightClick(target, lv, mines);
                 
             } else if (which === 1) {
                 // 左击
@@ -182,7 +182,7 @@ function bindEvents(cfgs, mines) {
                 
                 if (cellObj.isMine) {
                     // 踩雷，游戏结束：
-                    showMinesAndCleanup(target, mines, cfgs);
+                    showMinesAndCleanup(target, mines, lv);
                     // 提示重启游戏
                     setTimeout(() => {
                         $('.restart').classList.remove('hidden');
@@ -202,7 +202,7 @@ function bindEvents(cfgs, mines) {
                     // 如果是空白单元格，则递归显示周围的格子
                     target.classList.add('number', 'mc-0');
                     target.innerHTML = '';
-                    const colSize = getCurrentLevel(cfgs).col;
+                    const colSize = lv.col;
                     cellObj.neighbors.forEach(nbId => {
                         const nbCell = mines[nbId - 1];
                         const nbDom = $(`[data-id="${getIJ(nbId, colSize)}"]`);
@@ -215,14 +215,14 @@ function bindEvents(cfgs, mines) {
                 // 查看是否胜利
                 const allChecked = mines.filter(e => !e.isMine && !e.checked).length === 0;
                 if (allChecked) {
-                    congratulateVictory(mines, cfgs);
+                    congratulateVictory(mines, lv);
                 }
             }
         };
     });
 }
 
-function handleRightClick(target, cfgs, mines) {
+function handleRightClick(target, lv, mines) {
     target.classList.toggle('mine');
     target.classList.toggle('ms-flag');
 
@@ -234,15 +234,15 @@ function handleRightClick(target, cfgs, mines) {
     }
 
     // 检查地雷标记数是否达到总地雷数
-    const { mine: mineCount, col } = getCurrentLevel(cfgs);
+    const { mine: mineCount, col } = lv;
     if (mineFound === mineCount) {
         // 所有地雷都已标记，检查是否正确
         const allCorrect = checkFlaggedIds(mines, col);
         if (allCorrect) {
-            congratulateVictory(mines, cfgs);
+            congratulateVictory(mines, lv);
         } else {
             // 不是所有地雷都已标记，游戏失败
-            showMinesAndCleanup(target, mines, cfgs);
+            showMinesAndCleanup(target, mines, lv);
             setTimeout(() => {
                 alert('地雷标记有误！再接再厉！');
                 $('.restart').classList.remove('hidden');
@@ -251,9 +251,9 @@ function handleRightClick(target, cfgs, mines) {
     }
 }
 
-function congratulateVictory(mines, cfgs) {
+function congratulateVictory(mines, lv) {
     
-    showFinalResult(mines, cfgs);
+    showFinalResult(mines, lv);
 
     setTimeout(() => {
         alert('恭喜你，成功扫除所有地雷！');
@@ -261,15 +261,15 @@ function congratulateVictory(mines, cfgs) {
     }, 0);
 }
 
-function showFinalResult(mines, cfgs) {
+function showFinalResult(mines, lv) {
     // 1. 渲染出所有地雷
-    renderAllMines(mines, cfgs);
+    renderAllMines(mines, lv);
 
     // 2. 标记所有单元格为已检查（防止误操作）
     mines.forEach(mine => mine.checked = true);
 
     // 3. 所有标记正确的单元格背景色变为绿色
-    renderAllCorrectFlagged(mines, cfgs);
+    renderAllCorrectFlagged(mines, lv);
 }
 
 function checkFlaggedIds(mines, col) {
@@ -286,25 +286,25 @@ function checkFlaggedIds(mines, col) {
     return (mineIds === flaggedIds);
 }
 
-function showMinesAndCleanup(target, mines, cfgs) {
+function showMinesAndCleanup(target, mines, lv) {
     // 1. 标记当前踩雷的单元格
     target.classList.add('fail');
 
     // 2. 公布所有地雷
-    showFinalResult(mines, cfgs);
+    showFinalResult(mines, lv);
 }
 
 
-function renderAllMines(mines, cfgs) {
+function renderAllMines(mines, lv) {
     mines.filter(cell => cell.isMine)
         .forEach(cell => {
-            const dom = findCellDomById(cell.id, cfgs);
+            const dom = findCellDomById(cell.id, lv);
             dom.classList.add('mine', 'ms-mine');
         });
 }
 
-function renderAllCorrectFlagged(mines, cfgs) {
-    const { col } = getCurrentLevel(cfgs);
+function renderAllCorrectFlagged(mines, lv) {
+    const { col } = currentLv;
     const mineIds = mines
         .filter(e => e.isMine)
         .map(e => e.id);
@@ -312,36 +312,33 @@ function renderAllCorrectFlagged(mines, cfgs) {
         .map(e => e.dataset.id)
         .map(ij => getId(ij, col))
         .filter(id => mineIds.includes(id))
-        .map(id => findCellDomById(id, cfgs))
+        .map(id => findCellDomById(id, lv))
         .forEach(dom => dom.classList.add('correct'));
 }
 
-function findCellDomById(id, cfgs) {
-    const { col } = getCurrentLevel(cfgs);
+function findCellDomById(id, { col }) {
     const [i, j] = getIJ(id, col);
     const dom = $(`.cell[data-id="${i},${j}"]`);
     return dom;
 }
 
-function findMineCellById(id, cfgs, mines) {
-    const { col } = getCurrentLevel(cfgs);
+function findMineCellById(id, mines) {
+    const { col } = currentLv;
     const index = getId(id, col) - 1;
     const cellObj = mines[index];
     return cellObj;
 }
 
-function getCurrentLevel(cfgs) {
-    const btn = $('.level .active');
-    const lv = btn.dataset.level || 1;
+function getCurrentLevel(lv, cfgs = configs) {
     return cfgs[`lv${lv}`];
 }
 
-function start(cfgs = configs) {
+function start(lv = currentLv) {
     // init game board
-    const mineCells = init(cfgs);
+    const mineCells = init(lv);
 
     // bind events
-    bindEvents(cfgs, mineCells);
+    bindEvents(lv, mineCells);
 }
 
-start(configs);
+start(currentLv);

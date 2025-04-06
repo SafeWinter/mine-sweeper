@@ -21,5 +21,3 @@ export const configs = {
         col: 18,
     },
 };
-
-export const currentLv = configs.lv1; // default config
