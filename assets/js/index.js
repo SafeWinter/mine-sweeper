@@ -85,6 +85,7 @@ function initMineCells({row, col, mine}) {
                 mineCount,
                 neighbors, // neighbors of the cell
                 checked: false, // whether the cell is checked or not
+                flagged: false // whether the cell is flagged or not
             };
         });
     return mineCells;
@@ -258,7 +259,7 @@ function bindEvents(lv, mines) {
                 // 左击
 
                 // 如果已插旗，则不处理
-                if (target.classList.contains('ms-flag')) {
+                if (cellObj.flagged) {
                     console.log('Already flagged, abort');
                     return;
                 }
@@ -275,25 +276,7 @@ function bindEvents(lv, mines) {
                 }
 
                 // 若为安全区域，标记为已检查
-                cellObj.checked = true;
-
-                if(cellObj.mineCount > 0) {
-                    // 如果不是空白单元格，则显示数字
-                    target.classList.add('number', `mc-${cellObj.mineCount}`);
-                    target.innerHTML = cellObj.mineCount;
-                } else {
-                    // 如果是空白单元格，则递归显示周围的格子
-                    target.classList.add('number', 'mc-0');
-                    target.innerHTML = '';
-                    const colSize = lv.col;
-                    cellObj.neighbors.forEach(nbId => {
-                        const nbCell = mines[nbId - 1];
-                        const nbDom = $(`[data-id="${getIJ(nbId, colSize)}"]`);
-                        if (!nbCell.checked) {
-                            nbDom.dispatchEvent(new MouseEvent('mousedown', { which: 1 }));
-                        }
-                    });
-                }
+                searchAround(cellObj, target, lv.col, mines);
 
                 // 查看是否胜利
                 const allChecked = mines.filter(e => !e.isMine && !e.checked).length === 0;
@@ -305,12 +288,33 @@ function bindEvents(lv, mines) {
     });
 }
 
+function searchAround(curCell, curDom, colSize, mines) {
+    curCell.checked = true;
+
+    curDom.classList.add('number', `mc-${curCell.mineCount}`);
+    curDom.innerHTML = curCell.mineCount;
+
+    // 如果是空白单元格，则递归显示周围的格子，直到遇到非空白单元格
+    if (curCell.mineCount === 0) {
+        curDom.innerHTML = '';
+        curCell.neighbors.forEach(nbId => {
+            const nbCell = mines[nbId - 1];
+            const nbDom = $(`[data-id="${getIJ(nbId, colSize)}"]`);
+            if(!nbCell.checked && !nbCell.flagged && !nbCell.isMine) {
+                searchAround(nbCell, nbDom, colSize, mines);
+            }
+        });
+    }
+}
+
 function handleRightClick(target, lv, mines) {
     target.classList.toggle('mine');
     target.classList.toggle('ms-flag');
+    const cellObj = findMineCellById(target.dataset.id, mines);
+    cellObj.flagged = !cellObj.flagged; // toggle flagged status
 
     // 更新地雷标记数
-    if (target.classList.contains('ms-flag')) {
+    if (cellObj.flagged) {
         $('#mineFound').innerHTML = (++mineFound);
     } else {
         $('#mineFound').innerHTML = (--mineFound);

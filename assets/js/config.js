@@ -9,15 +9,15 @@ export const configs = {
     lv2: {
         desc: 'normal mode',
         level: 2,
-        mine: 20,
-        row: 12,
-        col: 12,
+        mine: 40,
+        row: 16,
+        col: 16,
     },
     lv3: {
         desc: 'hard mode',
         level: 3,
-        mine: 40,
-        row: 12,
-        col: 18,
+        mine: 99,
+        row: 16,
+        col: 30,
     },
 };
