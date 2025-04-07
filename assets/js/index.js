@@ -56,12 +56,15 @@ function generateMineCells(lv, doms) {
     // 2. check if the mine distribution is valid
     let i = 0, limit = 10;
     while(needRefresh && i < limit) {
-        console.log('检测到边界未完全封闭，需要重新生成地雷分布！');
         mines = initMineCells(lv);
         needRefresh = populateNeighboringIds(mines, lv, doms);
         i++;
     }
-    if(i > 0) {
+    
+    if(i === limit) {
+        alert('地雷分布无法满足条件，请检查配置参数！');
+        throw new Error('地雷分布无法满足条件，请检查配置参数！');
+    } else if (i > 0) {
         console.log('地雷分布已重新生成，累计迭代次数：', i);
     }
 
@@ -131,11 +134,9 @@ function populateNeighboringIds(mineCells, {col, row}, doms) {
     //     });
 
     // 4. Check if the mine distribution is valid
-    const result = checkInvalidCorner(mineCells, col);
-    if (result.length > 0) {
-        console.log(`坐标：${result.join(',')}`);
-    }
-    return result.length > 0;
+    const needRefresh = checkInvalidCorner(mineCells, col);
+    
+    return needRefresh;
 }
 
 // Check if the mine distribution is valid
@@ -145,7 +146,7 @@ function checkInvalidCorner(mineCells, col, /* doms */) {
     //     .forEach(dom => {
     //         dom.classList.remove('invalid');
     //     });
-    return mineCells.filter(({ isMine, mineCount }) => !isMine && mineCount === 0)
+    const coordinates = mineCells.filter(({ isMine, mineCount }) => !isMine && mineCount === 0)
         .reduce((acc, cell) => {
             const { id, neighbors } = cell, 
                 idLeft = id - 1, 
@@ -166,6 +167,12 @@ function checkInvalidCorner(mineCells, col, /* doms */) {
             }
             return acc;
         }, []);
+
+    const needRefresh = coordinates.length > 0;
+    if (needRefresh) {
+        console.log(`检测到边界未完全封闭(坐标：${coordinates.join(',')})，需要重新生成地雷分布！`);
+    }
+    return needRefresh;
 }
 
 function checkCorner(neighbors, mineCells, col) {
