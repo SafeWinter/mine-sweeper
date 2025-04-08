@@ -328,21 +328,21 @@ function handleRightClick(target, lv, mines) {
     }
 
     // 检查地雷标记数是否达到总地雷数
-    const { mine: mineCount, col } = lv;
-    if (mineFound === mineCount) {
-        // 所有地雷都已标记，检查是否正确
-        const allCorrect = checkFlaggedIds(mines, col);
-        if (allCorrect) {
-            congratulateVictory(mines, lv);
-        } else {
-            // 不是所有地雷都已标记，游戏失败
-            showMinesAndCleanup(target, mines, lv);
-            setTimeout(() => {
-                alert('地雷标记有误！再接再厉！');
-                $('.restart').classList.remove('hidden');
-            }, 0);
-        }
-    }
+    // const { mine: mineCount, col } = lv;
+    // if (mineFound === mineCount) {
+    //     // 所有地雷都已标记，检查是否正确
+    //     const allCorrect = checkFlaggedIds(mines, col);
+    //     if (allCorrect) {
+    //         congratulateVictory(mines, lv);
+    //     } else {
+    //         // 不是所有地雷都已标记，游戏失败
+    //         showMinesAndCleanup(target, mines, lv);
+    //         setTimeout(() => {
+    //             alert('地雷标记有误！再接再厉！');
+    //             $('.restart').classList.remove('hidden');
+    //         }, 0);
+    //     }
+    // }
 }
 
 function congratulateVictory(mines, lv) {
@@ -357,7 +357,7 @@ function congratulateVictory(mines, lv) {
 
 function showFinalResult(mines, lv) {
     // 1. 渲染出所有地雷
-    renderAllMines(mines, lv);
+    renderAllMines(mines, lv.col);
 
     // 2. 标记所有单元格为已检查（防止误操作）
     mines.forEach(mine => mine.checked = true);
@@ -389,28 +389,28 @@ function showMinesAndCleanup(target, mines, lv) {
 }
 
 
-function renderAllMines(mines, lv) {
+function renderAllMines(mines, col) {
     mines.filter(cell => cell.isMine)
-        .forEach(cell => {
-            const dom = findCellDomById(cell.id, lv);
-            dom.classList.add('mine', 'ms-mine');
-        });
+        .forEach(({id}) => findCellDomById(id, col)
+            .classList.add('mine', 'ms-mine'));
 }
 
 function renderAllCorrectFlagged(mines, lv) {
-    const { col } = currentLv;
+    const { col } = lv;
     const mineIds = mines
         .filter(e => e.isMine)
         .map(e => e.id);
     Array.from($$('.cell.ms-flag'))
         .map(e => e.dataset.id)
         .map(ij => getId(ij, col))
-        .filter(id => mineIds.includes(id))
-        .map(id => findCellDomById(id, lv))
-        .forEach(dom => dom.classList.add('correct'));
+        .forEach(id => {
+            const dom = findCellDomById(id, col);
+            const targetClass = mineIds.includes(id) ? 'correct' : 'fail';
+            dom.classList.add(targetClass);
+        });
 }
 
-function findCellDomById(id, { col }) {
+function findCellDomById(id, col) {
     const [i, j] = getIJ(id, col);
     const dom = $(`.cell[data-id="${i},${j}"]`);
     return dom;
