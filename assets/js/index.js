@@ -1,8 +1,7 @@
 import { $, $$, getId, getIJ, range } from './utils.js';
 import { configs } from './config.js';
 
-// number of mines found
-let mineFound = 0; 
+let mineFound = 0; // number of mines found
 let currentLv = configs.lv1; // default level
 
 function bindLevelButtonActions() {
@@ -13,7 +12,7 @@ function bindLevelButtonActions() {
             arr.forEach(bt => (target !== bt) ?
                 bt.classList.remove('active') :
                 bt.classList.add('active'));
-            // reset mine found count
+            // reset mines found
             mineFound = 0;
             currentLv = getCurrentLevel(target.dataset.level);
             // reload game
@@ -50,24 +49,11 @@ function renderGameBoard({ row, col }) {
 
 function generateMineCells(lv, doms) {
     // 1. create mine cells
-    let mines = initMineCells(lv);
-    let needRefresh = populateNeighboringIds(mines, lv, doms);
+    const mines = initMineCells(lv);
     
-    // 2. check if the mine distribution is valid
-    let i = 0, limit = 10;
-    while(needRefresh && i < limit) {
-        mines = initMineCells(lv);
-        needRefresh = populateNeighboringIds(mines, lv, doms);
-        i++;
-    }
+    // 2. populate neighboring ids
+    populateNeighboringIds(mines, lv, doms);
     
-    if(i === limit) {
-        alert('地雷分布无法满足条件，请检查配置参数！');
-        throw new Error('地雷分布无法满足条件，请检查配置参数！');
-    } else if (i > 0) {
-        console.log('地雷分布已重新生成，累计迭代次数：', i);
-    }
-
     return mines;
 }
 
@@ -95,120 +81,28 @@ function initMineCells({row, col, mine}) {
 }
 
 function populateNeighboringIds(mineCells, {col, row}, doms) {
+    const safeCells = mineCells.filter(({ isMine }) => !isMine);
     // 1. Get neighbor ids for each cell
-    mineCells
-        .filter(({ isMine }) => !isMine)
-        .forEach(cell => {
-            const [i, j] = getIJ(cell.id, col);
-            for (let r = Math.max(1, i - 1), rows = Math.min(row, i + 1); r <= rows; r++) {
-                for (let c = Math.max(1, j - 1), cols = Math.min(col, j + 1); c <= cols; c++) {
-                    if (r === i && c === j) continue;
-                    const neighborId = getId(`${r},${c}`, col);
-                    cell.neighbors.push(neighborId);
-                }
+    safeCells.forEach(cell => {
+        const [i, j] = getIJ(cell.id, col);
+        for (let r = Math.max(1, i - 1), rows = Math.min(row, i + 1); r <= rows; r++) {
+            for (let c = Math.max(1, j - 1), cols = Math.min(col, j + 1); c <= cols; c++) {
+                if (r === i && c === j) continue;
+                const neighborId = getId(`${r},${c}`, col);
+                cell.neighbors.push(neighborId);
             }
-            return cell;
-        });
+        }
+    });
 
     // 2. Calculate total number of neighboring mines
-    mineCells
-        .filter(({ isMine }) => !isMine)
+    safeCells.forEach(cell => {
         // get neighbor ids for each cell
-        .forEach(cell => {
-            const mineCount = cell.neighbors.reduce((acc, neighborId) => {
-                const {isMine} = mineCells[neighborId - 1];
-                return acc + (isMine ? 1 : 0);
-            }, 0);
-            cell.mineCount = mineCount;
-
-            // const dom = $(`.cell[data-id="${getIJ(cell.id, col)}"]`);
-            // dom.classList.add('number', `mc-${mineCount}`);
-            // dom.innerHTML = mineCount > 0 ? mineCount : '';
-        });
-
-    // 3. Mark mines on the board
-    // mineCells.filter(({isMine}) => isMine)
-    //     .forEach(cell => {
-    //         const dom = $(`.cell[data-id="${getIJ(cell.id, col)}"]`);
-    //         dom.classList.add('mine', 'ms-mine');
-    //     });
-
-    // 4. Check if the mine distribution is valid
-    const needRefresh = checkInvalidCorner(mineCells, col);
-    
-    return needRefresh;
-}
-
-// Check if the mine distribution is valid
-function checkInvalidCorner(mineCells, col, /* doms */) {
-    // Array.from(doms)
-    //     .filter(dom => dom.classList.contains('invalid'))
-    //     .forEach(dom => {
-    //         dom.classList.remove('invalid');
-    //     });
-    const coordinates = mineCells.filter(({ isMine, mineCount }) => !isMine && mineCount === 0)
-        .reduce((acc, cell) => {
-            const { id, neighbors } = cell, 
-                idLeft = id - 1, 
-                idRight = id + 1, 
-                idTop = id - col, 
-                idBottom = id + col;
-
-            const cornerChecker = checkCorner(neighbors, mineCells, col);
-            const [foundTL, ij1] = cornerChecker([idTop, idLeft], arr => Math.min(...arr) - 1 - 1);
-            const [foundTR, ij2] = cornerChecker([idTop, idRight], arr => Math.min(...arr) + 1 - 1);
-            const [foundBL, ij3] = cornerChecker([idBottom, idLeft], arr => Math.max(...arr) - 1 - 1);
-            const [foundBR, ij4] = cornerChecker([idBottom, idRight], arr => Math.max(...arr) + 1 - 1);
-            if (foundTL || foundTR || foundBL || foundBR) {
-                const coordinates = [ij1, ij2, ij3, ij4]
-                    .filter(Boolean)
-                    .map(c => `(${c})`);
-                acc.push(...coordinates);
-            }
-            return acc;
-        }, []);
-
-    const needRefresh = coordinates.length > 0;
-    if (needRefresh) {
-        console.log(`检测到边界未完全封闭(坐标：${coordinates.join(',')})，需要重新生成地雷分布！`);
-    }
-    return needRefresh;
-}
-
-function checkCorner(neighbors, mineCells, col) {
-    return (group, indexCb) => {
-        const nbs = neighbors.filter(nb => group.includes(nb));
-        const inPair = nbs.length === 2;
-        if (!inPair) {
-            return [false];
-        }
-
-        const bothNearMine = nbs.every(nbId => {
-            const target = mineCells[nbId - 1];
-            return (!!target) && (target.mineCount > 0);
-        });
-        if(!bothNearMine) {
-            return [false];
-        }
-
-        // 检查：左上角单元格存在且 mineCount > 0
-        const cornerIndex = indexCb(nbs);
-        const cornerCell = mineCells[cornerIndex];
-        const invalid = (!!cornerCell) && cornerCell.mineCount === 0;
-
-        if(!invalid) {
-            // 为有效单元格，跳过
-            return [false];
-        }
-
-        const ij = getIJ(cornerCell.id, col);
-        // // 标记为无效单元格（需要新增参数 cell）
-        // [cornerCell, cell].forEach(c => {
-        //     const dom = $(`.cell[data-id="${getIJ(c.id, col)}"]`);
-        //     dom.classList.add('invalid');
-        // });
-        return [invalid, ij];
-    };
+        const mineCount = cell.neighbors.reduce((acc, neighborId) => {
+            const {isMine} = mineCells[neighborId - 1];
+            return acc + (isMine ? 1 : 0);
+        }, 0);
+        cell.mineCount = mineCount;
+    });
 }
 
 function init(lv) {
@@ -248,7 +142,7 @@ function bindEvents(lv, mines) {
                 e.preventDefault();
             };
 
-            const cellObj = findMineCellById(target.dataset.id, mines);
+            const cellObj = findMineCellById(target.dataset.id, lv, mines);
 
             if(cellObj.checked) {
                 // already checked or flagged
@@ -257,22 +151,20 @@ function bindEvents(lv, mines) {
             }
             
             if (which === 3) {
-                // 右击
-                
-                // 添加/删除地雷标记
+                // 右击：添加/删除地雷标记
                 handleRightClick(target, lv, mines);
                 
             } else if (which === 1) {
                 // 左击
 
-                // 如果已插旗，则不处理
+                // 1. 如果已插旗，则不处理
                 if (cellObj.flagged) {
                     console.log('Already flagged, abort');
                     return;
                 }
                 
+                // 2. 踩雷，游戏结束：
                 if (cellObj.isMine) {
-                    // 踩雷，游戏结束：
                     showMinesAndCleanup(target, mines, lv);
                     // 提示重启游戏
                     setTimeout(() => {
@@ -282,10 +174,10 @@ function bindEvents(lv, mines) {
                     return;
                 }
 
-                // 若为安全区域，标记为已检查
+                // 3. 若为安全区域，标记为已检查
                 searchAround(cellObj, target, lv.col, mines);
 
-                // 查看是否胜利
+                // 4. 查看是否胜利
                 const allChecked = mines.filter(e => !e.isMine && !e.checked).length === 0;
                 if (allChecked) {
                     congratulateVictory(mines, lv);
@@ -298,6 +190,7 @@ function bindEvents(lv, mines) {
 function searchAround(curCell, curDom, colSize, mines) {
     curCell.checked = true;
 
+    // Render the current cell
     curDom.classList.add('number', `mc-${curCell.mineCount}`);
     curDom.innerHTML = curCell.mineCount;
 
@@ -317,7 +210,7 @@ function searchAround(curCell, curDom, colSize, mines) {
 function handleRightClick(target, lv, mines) {
     target.classList.toggle('mine');
     target.classList.toggle('ms-flag');
-    const cellObj = findMineCellById(target.dataset.id, mines);
+    const cellObj = findMineCellById(target.dataset.id, lv, mines);
     cellObj.flagged = !cellObj.flagged; // toggle flagged status
 
     // 更新地雷标记数
@@ -326,29 +219,12 @@ function handleRightClick(target, lv, mines) {
     } else {
         $('#mineFound').innerHTML = (--mineFound);
     }
-
-    // 检查地雷标记数是否达到总地雷数
-    // const { mine: mineCount, col } = lv;
-    // if (mineFound === mineCount) {
-    //     // 所有地雷都已标记，检查是否正确
-    //     const allCorrect = checkFlaggedIds(mines, col);
-    //     if (allCorrect) {
-    //         congratulateVictory(mines, lv);
-    //     } else {
-    //         // 不是所有地雷都已标记，游戏失败
-    //         showMinesAndCleanup(target, mines, lv);
-    //         setTimeout(() => {
-    //             alert('地雷标记有误！再接再厉！');
-    //             $('.restart').classList.remove('hidden');
-    //         }, 0);
-    //     }
-    // }
 }
 
 function congratulateVictory(mines, lv) {
-    
-    showFinalResult(mines, lv);
 
+    showFinalResult(mines, lv);
+    
     setTimeout(() => {
         alert('恭喜你，成功扫除所有地雷！');
         $('.restart').classList.remove('hidden');
@@ -364,20 +240,6 @@ function showFinalResult(mines, lv) {
 
     // 3. 所有标记正确的单元格背景色变为绿色
     renderAllCorrectFlagged(mines, lv);
-}
-
-function checkFlaggedIds(mines, col) {
-    const mineIds = mines
-        .filter(e => e.isMine)
-        .map(e => e.id)
-        .sort((a, b) => a - b)
-        .join(',');
-    const flaggedIds = Array.from($$('.cell.ms-flag'))
-        .map(e => e.dataset.id)
-        .map(ij => getId(ij, col))
-        .sort((a, b) => a - b)
-        .join(',');
-    return (mineIds === flaggedIds);
 }
 
 function showMinesAndCleanup(target, mines, lv) {
@@ -411,16 +273,13 @@ function renderAllCorrectFlagged(mines, lv) {
 }
 
 function findCellDomById(id, col) {
-    const [i, j] = getIJ(id, col);
-    const dom = $(`.cell[data-id="${i},${j}"]`);
-    return dom;
+    const ij = getIJ(id, col).join(',');
+    return $(`.cell[data-id="${ij}"]`);
 }
 
-function findMineCellById(id, mines) {
-    const { col } = currentLv;
+function findMineCellById(id, {col}, mines) {
     const index = getId(id, col) - 1;
-    const cellObj = mines[index];
-    return cellObj;
+    return mines[index];
 }
 
 function getCurrentLevel(lv, cfgs = configs) {
