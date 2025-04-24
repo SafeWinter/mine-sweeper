@@ -135,12 +135,19 @@ function bindEvents(lv, mines) {
     };
 
     // when clicking on cells
-    Array.from($$('.cell')).forEach(cell => {
+    bindCellMousedownActions(lv, mines);
+}
+
+function bindCellMousedownActions(lv, mines) {
+    // when clicking on cells
+    $$('.cell').forEach(cell => {
         cell.onmousedown = ({ target, which }) => {
             // 禁用右键菜单
-            target.oncontextmenu = (e) => {
-                e.preventDefault();
-            };
+            target.oncontextmenu = e => e.preventDefault();
+
+            if(which === 2) { // 按下鼠标滚轮
+                return;
+            }
 
             const cellObj = findMineCellById(target.dataset.id, lv, mines);
 
@@ -153,8 +160,10 @@ function bindEvents(lv, mines) {
             if (which === 3) {
                 // 右击：添加/删除地雷标记
                 handleRightClick(target, lv, mines);
-                
-            } else if (which === 1) {
+                return;
+            }
+            
+            if (which === 1) {
                 // 左击
 
                 // 1. 如果已插旗，则不处理

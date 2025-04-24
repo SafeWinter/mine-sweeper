@@ -3,18 +3,14 @@
  * @param {string} selector The CSS selector to match elements.
  * @returns {Element} The first element matching the selector.
  */
-export function $(selector) {
-    return document.querySelector(selector);
-}
+export const $ = document.querySelector.bind(document);
 
 /**
  * Selects all elements matching a CSS selector.
  * @param {string} selector The CSS selector to match elements.
  * @returns {NodeList} A NodeList of elements matching the selector.
  */
-export function $$(selector) {
-    return document.querySelectorAll(selector);
-}
+export const $$ = document.querySelectorAll.bind(document);
 
 /**
  * Converts a 2D array index to a 1D array index.
